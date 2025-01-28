@@ -1,0 +1,78 @@
+Commands:
+apt-get update
+
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+
+cat /etc/modules-load.d/k8s.conf
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+cat /etc/sysctl.d/k8s.conf
+
+sudo sysctl --system
+
+lsmod | grep br_netfilter
+lsmod | grep overlay
+
+sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables net.ipv4.ip_forward
+
+apt-get update && apt-get install containerd -y
+
+mkdir -p /etc/containerd
+ls -l  /etc/containerd/
+
+containerd config default > /etc/containerd/config.toml
+
+cat config.toml
+
+systemctl restart containerd
+systemctl status containerd
+
+sudo apt-get update
+
+sudo apt-get install -y apt-transport-https ca-certificates curl gpg
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+sudo apt-get update
+sudo apt-cache madison kubeadm
+sudo apt-get install -y kubelet=1.28.0-1.1 kubeadm=1.28.0-1.1 kubectl=1.28.0-1.1
+
+crictl pods
+crictl images
+
+vi /etc/crictl.yaml
+runtime-endpoint: unix:///run/containerd/containerd.sock
+
+systemctl restart containerd
+
+sudo kubeadm init --pod-network-cidr 192.168.0.0/16 --kubernetes-version 1.28.0
+
+mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+ kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.1/manifests/calico.yaml
+
+kubeadm join 10.138.0.5:6443 --token punxc8.q7j31r55yq5x7p8u --discovery-token-ca-cert-hash sha256:7b68406c11cd20eedcd873266b258a4dc0c5d0cf2e53ae583922618c072d4123
+
+
+kubeadm join 10.138.0.12:6443 --token basjyz.bvm0uik05rvw7lzb --discovery-token-ca-cert-hash sha256:23119fdd47b292c4d77eda4d23171589d80e6411b50899d8aa3607d6e9bdbe62
+
+
+
+
+
+
